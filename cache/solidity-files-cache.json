@@ -1,0 +1,48 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/Users/steinitz/Documents/Projects/Blockchain/SmartContractCourse/hardhat-lottery-fcc/contracts/Lottery.sol": {
+      "lastModificationDate": 1709792743307,
+      "contentHash": "65ba1832d69d031b12fbdfe5a92ab2e7",
+      "sourceName": "contracts/Lottery.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "Lottery"
+      ]
+    }
+  }
+}
