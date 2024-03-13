@@ -3,6 +3,7 @@
   "name": "hardhat-lottery",
   "author": "Steve Steinitz",
   "devDependencies": {
+    "@chainlink/contracts": "^0.8.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.2",
     "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers",
     "@nomiclabs/hardhat-etherscan": "^3.1.8",
