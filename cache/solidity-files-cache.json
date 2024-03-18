@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "/Users/steinitz/Documents/Projects/Blockchain/SmartContractCourse/hardhat-lottery-fcc/contracts/Lottery.sol": {
-      "lastModificationDate": 1710300882469,
-      "contentHash": "f535b29962f0842e010461b4c6b7cf51",
+      "lastModificationDate": 1710750283820,
+      "contentHash": "a4d0385b22245621aa81eb3ce7dab830",
       "sourceName": "contracts/Lottery.sol",
       "solcConfig": {
         "version": "0.8.24",
@@ -39,7 +39,7 @@
       "imports": [
         "hardhat/console.sol",
         "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol",
-        "@chainlink/contracts/src/v0.8/vrf/VRFCoordinatorV2.sol"
+        "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol"
       ],
       "versionPragmas": [
         "^0.8.24"
