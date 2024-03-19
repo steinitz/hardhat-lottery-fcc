@@ -14,6 +14,7 @@ import '@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol';
 import '@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol';
 
 error Lottery__InsufficientEntryETH();
+error Lottery__TransferFailed();
 
 contract Lottery is VRFConsumerBaseV2 {
 
@@ -27,9 +28,13 @@ contract Lottery is VRFConsumerBaseV2 {
   uint32 private immutable i_callbackGasLimit;
   uint16 private constant NUM_WORDS = 1;
 
+  // Lottery Variables
+  address private s_winner;
+
   // Events
   event LotteryEnter(address indexed player);
   event RequestedLotteryWinner(uint256 indexed requestId);
+  event WinnerPicked(address indexed winner);
 
   constructor(
     address vrfCoordinatorV2,
@@ -84,9 +89,17 @@ contract Lottery is VRFConsumerBaseV2 {
   
   // overridden chainlink callback function
   function fulfillRandomWords(
-    uint256 requestId,
+    uint256 /* requestId */,
     uint256[] memory randomWords
   ) internal override {
+    uint256 indexOfWinner = randomWords[0] % s_entrants.length;
+    address payable winner = s_entrants[indexOfWinner];
+    s_winner = winner;
+    (bool success, ) = winner.call{value: address(this).balance}("");
+    if (!success) {
+      revert Lottery__TransferFailed();
+    }
+    emit WinnerPicked(winner);
   }
 
   // public getters - function modifiers : view, pure (implicit)
@@ -97,6 +110,10 @@ contract Lottery is VRFConsumerBaseV2 {
 
   function getEntrant(uint256 index) public view returns (address) {
     return s_entrants[index];
+  }
+
+  function getRecentWinner() public view returns (address) {
+    return s_winner;
   }
 
 }
