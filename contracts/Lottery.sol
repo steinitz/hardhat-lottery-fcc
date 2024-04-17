@@ -9,7 +9,6 @@ pragma solidity ^0.8.24;
 //   Randomness, 
 //   Automated Execution (Chainlink Keeper)
 
-import "hardhat/console.sol";
 import '@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol';
 import '@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol';
 import '@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol';
@@ -64,7 +63,7 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
 
   // Functions
   constructor(
-    address vrfCoordinatorV2,
+    address vrfCoordinatorV2, // contract
     uint256 entranceFee,
     bytes32 gasLane, 
     uint64 subscriptionId,
@@ -191,4 +190,19 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
     return s_lotteryState;
   }
 
+  function getNumWords() public pure returns (uint256) {
+    return NUM_WORDS;
+  }
+
+  function getNumberOfEntrants() public view returns (uint256) {
+    return s_entrants.length;
+  }
+
+  function getLotteryStartTimestamp() public view returns (uint256) {
+    return s_lotteryStartTimestamp;
+  }
+
+  function getRequestConfirmations() public pure returns (uint256) {
+    return REQUEST_CONFIRMATIONS;
+  }
 }

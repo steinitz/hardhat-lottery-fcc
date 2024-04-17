@@ -1,0 +1,8 @@
+{
+  "workbench.colorTheme": "Default High Contrast",
+  "workbench.preferredDarkColorTheme": "Default High Contrast",
+  "workbench.editor.wrapTabs": true,
+  "workbench.editor.tabSizingFixedMaxWidth": 160,
+  "workbench.editor.tabSizing": "fixed",
+  "workbench.editor.highlightModifiedTabs": true
+}
