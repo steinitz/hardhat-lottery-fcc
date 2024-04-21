@@ -62,7 +62,7 @@ module.exports = async function({
     await verify(lottery.address, args)
   }
 
-  log("-------------------------------------------")
+  log("---------------------------------")
 }
 
 module.exports.tags = ["all", "lottery"]
