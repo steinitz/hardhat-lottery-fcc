@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "/Users/steinitz/Documents/Projects/Blockchain/SmartContractCourse/hardhat-lottery-fcc/contracts/Lottery.sol": {
-      "lastModificationDate": 1712738987243,
-      "contentHash": "a49393dde8198c8336732ca4b7dfa519",
+      "lastModificationDate": 1713862416494,
+      "contentHash": "4ad208a384864270619d4b9c66c5ce80",
       "sourceName": "contracts/Lottery.sol",
       "solcConfig": {
         "version": "0.8.24",

@@ -134,7 +134,7 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
   // Chainlink Automation nodes calls performUpkeep when 
   // this function returns upkeepNeeded = true.
   // Here's the logic: return upkeepNeeded = true if
-  // 1. our time interval should have passed
+  // 1. our time duration should have passed
   // 2. The lottery should have at least one player and some ETH
   // 3. Our subscription is funded with LINK
   // 4. The Lottery should be open e.g. we're not waiting for a random number
@@ -189,6 +189,9 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
   function getLotteryState() public view returns (LotteryState) {
     return s_lotteryState;
   }
+
+  function getLotteryDuration() public view returns (uint256) {
+    return i_duration;}
 
   function getNumWords() public pure returns (uint256) {
     return NUM_WORDS;

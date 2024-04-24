@@ -40,7 +40,7 @@ module.exports = async function({
   const entranceFee = networkConfig[chainId]["entranceFee"]
   const gasLane = networkConfig[chainId]["gasLane"]
   const callbackGasLimit = networkConfig[chainId]["callbackGasLimit"]
-  const interval = networkConfig[chainId]["interval"]
+  const duration = networkConfig[chainId]["duration"]
 
   const args = [
     vrfCoordinatorV2Address, 
@@ -48,7 +48,7 @@ module.exports = async function({
     gasLane,
     subscriptionId,
     callbackGasLimit,
-    interval,
+    duration,
   ]
   const lottery = await deploy("Lottery", {
     from: deployer,
