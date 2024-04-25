@@ -1,5 +1,6 @@
-const {assert} = require ("chai")
-const {getNamedAccounts, ethers, deployments} = require ("hardhat")
+const {assert, expect} = require ("chai")
+require ("@nomicfoundation/hardhat-toolbox")
+const {ethers, deployments} = require ("hardhat")
 const {developmentChains, networkConfig} = require ("../../helper-hardhat-config.js")
 const {getContract} = require('../../utils/getContract')
 
@@ -11,21 +12,14 @@ const {getContract} = require('../../utils/getContract')
     let lottery, vrfCoordinatorV2Mock
     const chainId = network.config.chainId
 
-    console.log("Lottery.test", {chainId})
-
     beforeEach(async function () {
-      // const {deployer} = await getNamedAccounts()
-      // await deployments.fixture(["all"])
-      // lottery = await getContract("lottery", deployer)
       ({signer, contract: lottery} = await getContract("Lottery", ["all"]))
-      console.log("Lottery.test", {lottery})
-      // vrfCoordinatorV2Mock = await ethers.getContractAt("VRFCoordinatorV2Mock", deployer)
-      // ({contract: vrfCoordinatorV2Mock} = await getContract("VRFCoordinatorV2Mock", ["all"]))
       vrfCoordinatorV2Mock = await ethers.getContractAt(
         "VRFCoordinatorV2Mock", 
         (await deployments.get("VRFCoordinatorV2Mock")).address, 
-        signer)
-      console.log("Lottery.test", {vrfCoordinatorV2Mock})
+        signer
+      )
+      // console.log("Lottery.test", {vrfCoordinatorV2Mock})
     })
 
     describe("constructor", async function () {
@@ -35,6 +29,17 @@ const {getContract} = require('../../utils/getContract')
         // would like to use LotteryState.OPEN rather than "0".  But how?
         assert.equal(lotteryState.toString(), "0")
         assert.equal(duration.toString(), networkConfig[chainId]["duration"])
+      })
+    })
+
+    describe('enterRaffle', async function() {
+      it.only('reverts if you don\'t pay enough', async function () {
+        // const enterLotteryResult = await lottery.enterLottery()
+        // console.log('revert test', {lottery.enterLottery()})
+        await expect(lottery.enterLottery()).to.be.revertedWithCustomError(
+          lottery,
+          'Lottery__InsufficientEntryETH'
+        )
       })
     })
   })

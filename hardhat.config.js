@@ -1,8 +1,5 @@
-require("@nomiclabs/hardhat-waffle")
-require("@nomiclabs/hardhat-etherscan")
 require("hardhat-deploy")
-require("solidity-coverage")
-require("hardhat-gas-reporter")
+require("@nomicfoundation/hardhat-toolbox")
 require("hardhat-contract-sizer")
 require("dotenv").config()
 const {
@@ -33,7 +30,14 @@ module.exports = {
       chainId: HARDHAT_CHAIN_ID,
     },
   },
-
+  gasReporter: {
+    enabled: false,
+    outputFile: 'gas-report.txt',
+    noColors: true,
+    currency: 'AUD',
+    token: 'ETH', // 'MATIC',
+    // coinmarketcap: COINMARKETCAP_API_KEY,
+  },
   namedAccounts: {
     deployer: {
       default: 0,

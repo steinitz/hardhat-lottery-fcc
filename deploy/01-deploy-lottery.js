@@ -1,10 +1,11 @@
-require("../constants")
-// const {getContract} = require('../utils/getContract')
+
 
 const {network} = require("hardhat")
 const {developmentChains, networkConfig} = require("../helper-hardhat-config")
 const chainId = network.config.chainId
 const {verify} = require("../utils/verify")
+require("../constants")
+const {getContract} = require('../utils/getContract')
 
 const VRF_SUB_FUND_AMOUNT = ethers.parseEther("30") // fund the subscription
 
@@ -17,7 +18,7 @@ module.exports = async function({
   let vrfCoordinatorV2Address, subscriptionId
 
   if (developmentChains.includes(network.name)) {
-    const vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
+    const {contract: vrfCoordinatorV2Mock} = await getContract("VRFCoordinatorV2Mock")
     // console.log('01-deploy-lottery', {vrfCoordinatorV2Mock})
     vrfCoordinatorV2Address = await vrfCoordinatorV2Mock.getAddress()
     // console.log('01-deploy-lottery', {vrfCoordinatorV2Address})
