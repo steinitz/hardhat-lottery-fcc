@@ -9,7 +9,7 @@ const {getContract} = require('../../utils/getContract')
 !developmentChains.includes(network.name)
   ? describe.skip
   : describe("Lottery Unit Tests", async function () {
-    let lottery, vrfCoordinatorV2Mock
+    let lottery, vrfCoordinatorV2Mock, entranceFee
     const chainId = network.config.chainId
 
     beforeEach(async function () {
@@ -19,6 +19,7 @@ const {getContract} = require('../../utils/getContract')
         (await deployments.get("VRFCoordinatorV2Mock")).address, 
         signer
       )
+      entranceFee = await lottery.getEntranceFee()
       // console.log("Lottery.test", {vrfCoordinatorV2Mock})
     })
 
@@ -33,12 +34,23 @@ const {getContract} = require('../../utils/getContract')
     })
 
     describe('enterRaffle', async function() {
-      it.only('reverts if you don\'t pay enough', async function () {
+      it('reverts if you don\'t pay enough', async function () {
         // const enterLotteryResult = await lottery.enterLottery()
         // console.log('revert test', {lottery.enterLottery()})
         await expect(lottery.enterLottery()).to.be.revertedWithCustomError(
           lottery,
           'Lottery__InsufficientEntryETH'
+        )
+      })
+      it('records entrants when they enter', async function () {
+        await lottery.enterLottery({value: entranceFee})
+        const entrant = await lottery.getEntrant(0)
+        assert.equal(entrant, await signer.getAddress())
+      })
+      it('emits event on enter', async function () {
+        await expect(lottery.enterLottery({value: entranceFee})).to.emit(
+          lottery,
+          'LotteryEnter'
         )
       })
     })
