@@ -15,7 +15,8 @@ const networkConfig = {
     gasLane: "0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c",
     subscriptionId: "0", // we'll get a real one later
     callbackGasLimit: "500000",
-    duration: "30", // 30 seconds
+    chainlinkAutomationUpdateInterval: "30", // 30 seconds
+    lotteryDuration: "60",
   },
   [HARDHAT_CHAIN_ID]: {
     name: "hardhat",
@@ -24,7 +25,8 @@ const networkConfig = {
     // this is irrelevant for hardhat, so we just use the above
     gasLane: "0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c",
     callbackGasLimit: "500000",
-    duration: "30", // 30 seconds
+    chainlinkAutomationUpdateInterval: "30", // 30 seconds
+    lotteryDuration: "60",
   }
 }
 

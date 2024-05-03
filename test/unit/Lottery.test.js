@@ -1,6 +1,6 @@
 const {assert, expect} = require ("chai")
 require ("@nomicfoundation/hardhat-toolbox")
-const {ethers, deployments} = require ("hardhat")
+const {ethers, deployments, network} = require ("hardhat")
 const {developmentChains, networkConfig} = require ("../../helper-hardhat-config.js")
 const {getContract} = require('../../utils/getContract')
 
@@ -9,8 +9,10 @@ const {getContract} = require('../../utils/getContract')
 !developmentChains.includes(network.name)
   ? describe.skip
   : describe("Lottery Unit Tests", async function () {
-    let lottery, vrfCoordinatorV2Mock, entranceFee
+    let lottery, vrfCoordinatorV2Mock, entranceFee, lotteryDuration, chainlinkAutomationUpdateInterval
     const chainId = network.config.chainId
+
+    // console.log({network})
 
     beforeEach(async function () {
       ({signer, contract: lottery} = await getContract("Lottery", ["all"]))
@@ -20,20 +22,24 @@ const {getContract} = require('../../utils/getContract')
         signer
       )
       entranceFee = await lottery.getEntranceFee()
+      chainlinkAutomationUpdateInterval = await lottery.getChainlinkAutomationUpdateInterval()
+      lotteryDuration = await lottery.getLotteryDuration()
+      // console.log({lotteryDuration})
+
       // console.log("Lottery.test", {vrfCoordinatorV2Mock})
     })
 
     describe("constructor", async function () {
       it("initializes the lottery correctly", async function () {
         const lotteryState = await lottery.getLotteryState()
-        const duration = await lottery.getLotteryDuration()
         // would like to use LotteryState.OPEN rather than "0".  But how?
         assert.equal(lotteryState.toString(), "0")
-        assert.equal(duration.toString(), networkConfig[chainId]["duration"])
+        assert.equal(lotteryDuration.toString(), networkConfig[chainId]["lotteryDuration"])
+        assert.equal(chainlinkAutomationUpdateInterval.toString(), networkConfig[chainId]["chainlinkAutomationUpdateInterval"])
       })
     })
 
-    describe('enterRaffle', async function() {
+    describe('enterLottery', async function() {
       it('reverts if you don\'t pay enough', async function () {
         // const enterLotteryResult = await lottery.enterLottery()
         // console.log('revert test', {lottery.enterLottery()})
@@ -53,5 +59,28 @@ const {getContract} = require('../../utils/getContract')
           'LotteryEnter'
         )
       })
+      it('prevents entering when lottery is not open', async function () {
+        await lottery.enterLottery({value: entranceFee})
+        // place the lottery in calculating state
+
+        // two step process to force checkUpkeep to return true so 
+        // performUpkeep will do its thing
+
+        await network.provider.send(
+          "evm_increaseTime", 
+          [ethers.toBeHex(Number(lotteryDuration) + 1)] // is there a better way?
+        )
+
+        await network.provider.request({method: 'evm_mine', params: []})
+
+        // now checkUpkeep will return true so we call performUpkeep
+        await lottery.performUpkeep("0x")
+
+        await expect(lottery.enterLottery({value: entranceFee})).to.be.revertedWithCustomError(
+          lottery,
+          'Lottery__NotOpen'
+        )
+      })
+      
     })
   })

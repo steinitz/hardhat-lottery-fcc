@@ -54,7 +54,8 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
   address private s_winner;
   LotteryState private s_lotteryState;
   uint256 private s_lotteryStartTimestamp;
-  uint256 private immutable i_duration;
+  uint256 private immutable i_lotteryDuration;
+  uint256 private immutable i_chainlinkAutomationUpdateInterval;
 
   // Events
   event LotteryEnter(address indexed player);
@@ -68,8 +69,9 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
     bytes32 gasLane, 
     uint64 subscriptionId,
     uint32 callbackGasLimit,
-    uint256 duration
-    ) 
+    uint256 lotteryDuration,
+    uint256 chainlinkAutomationUpdateInterval
+  ) 
     VRFConsumerBaseV2(vrfCoordinatorV2) 
   {
     i_entranceFee = entranceFee;
@@ -80,7 +82,8 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
 
     s_lotteryState = LotteryState.OPEN;
     s_lotteryStartTimestamp = block.timestamp;
-    i_duration = duration;
+    i_lotteryDuration = lotteryDuration;
+    i_chainlinkAutomationUpdateInterval = chainlinkAutomationUpdateInterval;
   }
 
   function enterLottery() public payable {
@@ -134,7 +137,7 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
   // Chainlink Automation nodes calls performUpkeep when 
   // this function returns upkeepNeeded = true.
   // Here's the logic: return upkeepNeeded = true if
-  // 1. our time duration should have passed
+  // 1. our time, lotteryDuration, should have passed
   // 2. The lottery should have at least one player and some ETH
   // 3. Our subscription is funded with LINK
   // 4. The Lottery should be open e.g. we're not waiting for a random number
@@ -147,7 +150,7 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
   )  {
     bool isOpen = (LotteryState.OPEN == s_lotteryState);
     uint256 timeSoFar = (block.timestamp - s_lotteryStartTimestamp);
-    bool shouldLotteryEnd = timeSoFar > i_duration;
+    bool shouldLotteryEnd = timeSoFar > i_lotteryDuration;
     bool hasEntrants = (s_entrants.length > 0);
     bool hasETH = address(this).balance > 0;
     upkeepNeeded = isOpen && shouldLotteryEnd && hasEntrants && hasETH;
@@ -190,8 +193,8 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
     return s_lotteryState;
   }
 
-  function getLotteryDuration() public view returns (uint256) {
-    return i_duration;}
+  function getChainlinkAutomationUpdateInterval() public view returns (uint256) {
+    return i_chainlinkAutomationUpdateInterval;}
 
   function getNumWords() public pure returns (uint256) {
     return NUM_WORDS;
@@ -203,6 +206,10 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
 
   function getLotteryStartTimestamp() public view returns (uint256) {
     return s_lotteryStartTimestamp;
+  }
+
+  function getLotteryDuration() public view returns (uint256) {
+    return i_lotteryDuration;
   }
 
   function getRequestConfirmations() public pure returns (uint256) {

@@ -15,10 +15,10 @@ module.exports = async function({
 }) {
   const {deploy, log} = deployments
   const {deployer} = await getNamedAccounts()
-  let vrfCoordinatorV2Address, subscriptionId
+  let vrfCoordinatorV2Mock, vrfCoordinatorV2Address, subscriptionId, signer
 
   if (developmentChains.includes(network.name)) {
-    const {contract: vrfCoordinatorV2Mock} = await getContract("VRFCoordinatorV2Mock")
+    ({contract: vrfCoordinatorV2Mock, signer} = await getContract("VRFCoordinatorV2Mock"))
     // console.log('01-deploy-lottery', {vrfCoordinatorV2Mock})
     vrfCoordinatorV2Address = await vrfCoordinatorV2Mock.getAddress()
     // console.log('01-deploy-lottery', {vrfCoordinatorV2Address})
@@ -41,7 +41,8 @@ module.exports = async function({
   const entranceFee = networkConfig[chainId]["entranceFee"]
   const gasLane = networkConfig[chainId]["gasLane"]
   const callbackGasLimit = networkConfig[chainId]["callbackGasLimit"]
-  const duration = networkConfig[chainId]["duration"]
+  const lotteryDuration = networkConfig[chainId]["lotteryDuration"]
+  const chainlinkAutomationUpdateInterval = networkConfig[chainId]["chainlinkAutomationUpdateInterval"]
 
   const args = [
     vrfCoordinatorV2Address, 
@@ -49,7 +50,8 @@ module.exports = async function({
     gasLane,
     subscriptionId,
     callbackGasLimit,
-    duration,
+    lotteryDuration,
+    chainlinkAutomationUpdateInterval,
   ]
   const lottery = await deploy("Lottery", {
     from: deployer,
@@ -57,6 +59,13 @@ module.exports = async function({
     log: true,
     waitConfirmations: network.config.blockConfirmations || 1,
   })
+
+  // Ensure the Lottery contract is a valid consumer of the VRFCoordinatorV2Mock contract.
+  // Can't be done above because we don't have the Lottery contract at that point.
+  if (developmentChains.includes(network.name)) {
+    vrfCoordinatorV2Mock
+    await vrfCoordinatorV2Mock.addConsumer(subscriptionId, lottery.address)
+  }
 
   if(!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
     log("Verifying...")
