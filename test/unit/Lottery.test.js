@@ -4,7 +4,15 @@ const {ethers, deployments, network} = require ("hardhat")
 const {developmentChains, networkConfig} = require ("../../helper-hardhat-config.js")
 const {getContract} = require('../../utils/getContract')
 
-// Note - ideally we have one assert per "it"
+// Note from Patrick: - ideally we have one assert per "it", but...
+
+const timeForwardToLotteryEnd = async (time /* bigint seconds */) => {
+  await network.provider.send(
+    "evm_increaseTime", 
+    [ethers.toBeHex(Number(time) + 1)] // is there a better way?
+  )
+  await network.provider.request({method: 'evm_mine', params: []})
+}
 
 !developmentChains.includes(network.name)
   ? describe.skip
@@ -63,15 +71,10 @@ const {getContract} = require('../../utils/getContract')
         await lottery.enterLottery({value: entranceFee})
         // place the lottery in calculating state
 
-        // two step process to force checkUpkeep to return true so 
-        // performUpkeep will do its thing
+        // move forward in time to force checkUpkeep() to 
+        // return true so performUpkeep will do its thing
 
-        await network.provider.send(
-          "evm_increaseTime", 
-          [ethers.toBeHex(Number(lotteryDuration) + 1)] // is there a better way?
-        )
-
-        await network.provider.request({method: 'evm_mine', params: []})
+        await timeForwardToLotteryEnd(lotteryDuration)
 
         // now checkUpkeep will return true so we call performUpkeep
         await lottery.performUpkeep("0x")
@@ -81,6 +84,13 @@ const {getContract} = require('../../utils/getContract')
           'Lottery__NotOpen'
         )
       })
-      
+    })
+
+    describe('checkUpkeep', async function() {
+      it('returns false if people haven\'t sent any ETH', async function () {
+        await timeForwardToLotteryEnd(lotteryDuration)
+        const {upkeepNeeded} = await lottery.checkUpkeep.staticCall("0x") // ethers 6
+        assert(!upkeepNeeded)
+      })
     })
   })
