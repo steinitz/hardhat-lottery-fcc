@@ -8,6 +8,8 @@ pragma solidity ^0.8.24;
 // Chainlink Oracle:
 //   Randomness, 
 //   Automated Execution (Chainlink Keeper)
+import "hardhat/console.sol";
+
 
 import '@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol';
 import '@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol';
@@ -153,6 +155,13 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
     bool shouldLotteryEnd = timeSoFar > i_lotteryDuration;
     bool hasEntrants = (s_entrants.length > 0);
     bool hasETH = address(this).balance > 0;
+    
+    // console.log("lottery.sol - isOpen", isOpen);
+    // console.log("lottery.sol - timeSoFar", timeSoFar);
+    // console.log("lottery.sol - shouldLotteryEnd", shouldLotteryEnd);
+    // console.log("lottery.sol - hasEntrants", hasEntrants);
+    // console.log("lottery.sol - hasETH", hasETH);
+
     upkeepNeeded = isOpen && shouldLotteryEnd && hasEntrants && hasETH;
     return (upkeepNeeded, performData);
   }

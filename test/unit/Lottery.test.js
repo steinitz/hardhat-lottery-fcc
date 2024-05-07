@@ -6,10 +6,10 @@ const {getContract} = require('../../utils/getContract')
 
 // Note from Patrick: - ideally we have one assert per "it", but...
 
-const timeForwardToLotteryEnd = async (time /* bigint seconds */) => {
+const timeForwardToLotteryEnd = async (lotteryDuration /* bigint seconds */) => {
   await network.provider.send(
     "evm_increaseTime", 
-    [ethers.toBeHex(Number(time) + 1)] // is there a better way?
+    [ethers.toBeHex(Number(lotteryDuration) + 1)] // is there a better way?
   )
   await network.provider.request({method: 'evm_mine', params: []})
 }
@@ -32,9 +32,6 @@ const timeForwardToLotteryEnd = async (time /* bigint seconds */) => {
       entranceFee = await lottery.getEntranceFee()
       chainlinkAutomationUpdateInterval = await lottery.getChainlinkAutomationUpdateInterval()
       lotteryDuration = await lottery.getLotteryDuration()
-      // console.log({lotteryDuration})
-
-      // console.log("Lottery.test", {vrfCoordinatorV2Mock})
     })
 
     describe("constructor", async function () {
@@ -73,7 +70,6 @@ const timeForwardToLotteryEnd = async (time /* bigint seconds */) => {
 
         // move forward in time to force checkUpkeep() to 
         // return true so performUpkeep will do its thing
-
         await timeForwardToLotteryEnd(lotteryDuration)
 
         // now checkUpkeep will return true so we call performUpkeep
@@ -92,5 +88,25 @@ const timeForwardToLotteryEnd = async (time /* bigint seconds */) => {
         const {upkeepNeeded} = await lottery.checkUpkeep.staticCall("0x") // ethers 6
         assert(!upkeepNeeded)
       })
+      it('returns false if lottery is not open', async function () {
+        await lottery.enterLottery({value: entranceFee})
+        // place the lottery in calculating state
+
+        // move forward in time to force checkUpkeep() to 
+        // return true so performUpkeep will do its thing
+        await timeForwardToLotteryEnd(lotteryDuration)
+        await lottery.performUpkeep("0x") // this should set the state to calculating
+        const {upkeepNeeded} = await lottery.checkUpkeep.staticCall("0x") // ethers 6
+        console.log({upkeepNeeded})
+        assert.equal(upkeepNeeded, false)
+
+        // patrick also asserts that the lottery state is not open
+        // but what's the point here?  Maybe there should be another test.
+        // const lotteryState = await lottery.getLotteryState()
+        // const enumValues = Object.values(lottery.interface.enums.LotteryState);
+        // console.log({enumValues})
+        // assert.equal(lotteryState.toString(), "1")
+      })
     })
+
   })
