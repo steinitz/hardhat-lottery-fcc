@@ -34,7 +34,7 @@ const timeForwardToLotteryEnd = async (lotteryDuration /* bigint seconds */) => 
       lotteryDuration = await lottery.getLotteryDuration()
     })
 
-    describe("constructor", async function () {
+    describe("constructor", function () {
       it("initializes the lottery correctly", async function () {
         const lotteryState = await lottery.getLotteryState()
         // would like to use LotteryState.OPEN rather than "0".  But how?
@@ -44,7 +44,7 @@ const timeForwardToLotteryEnd = async (lotteryDuration /* bigint seconds */) => 
       })
     })
 
-    describe('enterLottery', async function() {
+    describe('enterLottery', function() {
       it('reverts if you don\'t pay enough', async function () {
         // const enterLotteryResult = await lottery.enterLottery()
         // console.log('revert test', {lottery.enterLottery()})
@@ -82,7 +82,7 @@ const timeForwardToLotteryEnd = async (lotteryDuration /* bigint seconds */) => 
       })
     })
 
-    describe('checkUpkeep', async function() {
+    describe('checkUpkeep', function() {
       it('returns false if people haven\'t sent any ETH', async function () {
         await timeForwardToLotteryEnd(lotteryDuration)
         const {upkeepNeeded} = await lottery.checkUpkeep.staticCall("0x") // ethers 6
