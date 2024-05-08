@@ -97,7 +97,6 @@ const timeForwardToLotteryEnd = async (lotteryDuration /* bigint seconds */) => 
         await timeForwardToLotteryEnd(lotteryDuration)
         await lottery.performUpkeep("0x") // this should set the state to calculating
         const {upkeepNeeded} = await lottery.checkUpkeep.staticCall("0x") // ethers 6
-        console.log({upkeepNeeded})
         assert.equal(upkeepNeeded, false)
 
         // patrick also asserts that the lottery state is not open
@@ -106,6 +105,30 @@ const timeForwardToLotteryEnd = async (lotteryDuration /* bigint seconds */) => 
         // const enumValues = Object.values(lottery.interface.enums.LotteryState);
         // console.log({enumValues})
         // assert.equal(lotteryState.toString(), "1")
+      })
+      it('returns false if enough time hasn\'t passed', async function () {
+        // time can pass before this test runs os we get the lottery's time so far
+        // and use it in the calculation below, to make sure we are at a time
+        // before the lottery ends
+        const timeSoFar = await lottery.getTimeSoFar()
+        // console.log({timeSoFar})
+        await network.provider.send(
+          "evm_increaseTime", 
+          [ethers.toBeHex(Number(lotteryDuration - timeSoFar) - 1)] // is there a better way?
+        )
+        await network.provider.request({method: 'evm_mine', params: []})
+        const {upkeepNeeded} = await lottery.checkUpkeep.staticCall("0x") // ethers 6
+        assert.equal(upkeepNeeded, false)
+      })
+      it('returns true if enough time has passed, has balance, and has players', async function () {
+        await lottery.enterLottery({value: entranceFee})
+        // place the lottery in calculating state
+
+        // move forward in time to force checkUpkeep() to 
+        // return true so performUpkeep will do its thing
+        await timeForwardToLotteryEnd(lotteryDuration)
+        const {upkeepNeeded} = await lottery.checkUpkeep.staticCall("0x") // ethers 6
+        assert.equal(upkeepNeeded, true)
       })
     })
 

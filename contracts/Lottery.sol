@@ -83,7 +83,7 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
     i_callbackGasLimit = callbackGasLimit;
 
     s_lotteryState = LotteryState.OPEN;
-    s_lotteryStartTimestamp = block.timestamp;
+    s_lotteryStartTimestamp = getTimestamp(); // block.timestamp;
     i_lotteryDuration = lotteryDuration;
     i_chainlinkAutomationUpdateInterval = chainlinkAutomationUpdateInterval;
   }
@@ -151,7 +151,7 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
     bytes memory performData
   )  {
     bool isOpen = (LotteryState.OPEN == s_lotteryState);
-    uint256 timeSoFar = (block.timestamp - s_lotteryStartTimestamp);
+    uint256 timeSoFar = getTimeSoFar(); // (block.timestamp - s_lotteryStartTimestamp);
     bool shouldLotteryEnd = timeSoFar > i_lotteryDuration;
     bool hasEntrants = (s_entrants.length > 0);
     bool hasETH = address(this).balance > 0;
@@ -174,7 +174,7 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
     uint256 indexOfWinner = randomWords[0] % s_entrants.length;
     address payable winner = s_entrants[indexOfWinner];
     s_winner = winner;
-    s_lotteryStartTimestamp = block.timestamp; 
+    s_lotteryStartTimestamp = getTimestamp();// block.timestamp; 
     s_lotteryState = LotteryState.OPEN;
     s_entrants = new address payable[](0);
     (bool success, ) = winner.call{value: address(this).balance}("");
@@ -219,6 +219,14 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
 
   function getLotteryDuration() public view returns (uint256) {
     return i_lotteryDuration;
+  }
+
+  function getTimestamp() public view returns (uint256) {
+    return block.timestamp;
+  }
+
+  function getTimeSoFar() public view returns (uint256) {
+    return (block.timestamp - s_lotteryStartTimestamp);
   }
 
   function getRequestConfirmations() public pure returns (uint256) {
