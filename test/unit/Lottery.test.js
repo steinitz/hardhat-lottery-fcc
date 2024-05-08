@@ -131,17 +131,22 @@ const timeForward = async (lotteryDuration /* bigint seconds */) => {
       })
     })
     describe('performUpkeep', function() {
-      it(' only runs if checkUpkeep is true', async function () {
+      it("runs if checkupkeep is true", async () => {
+        await lottery.enterLottery({ value: entranceFee })
+        await timeForward(lotteryDuration)
+        const tx = await lottery.performUpkeep("0x") 
+        assert(tx)
+      })
+      it('reverts if checkup is false', async function () {
         await lottery.enterLottery({value: entranceFee})
 
         // move forward in time to force checkUpkeep() to 
         // return true so performUpkeep will do its thing
-        await timeForward(chainlinkAutomationUpdateInterval)
+        // await timeForward(chainlinkAutomationUpdateInterval)
         await expect(lottery.performUpkeep("0x")).to.be.revertedWithCustomError(
           lottery,
-          'Lottery__InvalidCallToPerformUpkeep'
+          'Lottery__UpkeepNotNeeded'
         )
-        // assert(tx)
       })
     })
   })

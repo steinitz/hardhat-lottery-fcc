@@ -27,7 +27,7 @@ enum LotteryState {
 error Lottery__InsufficientEntryETH();
 error Lottery__TransferFailed();
 error Lottery__NotOpen();
-error Lottery__InvalidCallToPerformUpkeep(
+error Lottery__UpkeepNotNeeded(
   uint256 ethBalance,
   uint256 numEntrants,
   LotteryState lotteryState
@@ -109,7 +109,7 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
     (bool upkeepNeeded, ) = checkUpkeep('');
     s_lotteryState = LotteryState.CALCULATING;
     if(!upkeepNeeded) {
-      revert Lottery__InvalidCallToPerformUpkeep( 
+      revert Lottery__UpkeepNotNeeded(
         address(this).balance,
         s_entrants.length,
         s_lotteryState
