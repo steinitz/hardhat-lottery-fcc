@@ -6,7 +6,7 @@ const {getContract} = require('../../utils/getContract')
 
 // Note from Patrick: - ideally we have one assert per "it", but...
 
-const timeForwardToLotteryEnd = async (lotteryDuration /* bigint seconds */) => {
+const timeForward = async (lotteryDuration /* bigint seconds */) => {
   await network.provider.send(
     "evm_increaseTime", 
     [ethers.toBeHex(Number(lotteryDuration) + 1)] // is there a better way?
@@ -70,7 +70,7 @@ const timeForwardToLotteryEnd = async (lotteryDuration /* bigint seconds */) => 
 
         // move forward in time to force checkUpkeep() to 
         // return true so performUpkeep will do its thing
-        await timeForwardToLotteryEnd(lotteryDuration)
+        await timeForward(lotteryDuration)
 
         // now checkUpkeep will return true so we call performUpkeep
         await lottery.performUpkeep("0x")
@@ -84,7 +84,7 @@ const timeForwardToLotteryEnd = async (lotteryDuration /* bigint seconds */) => 
 
     describe('checkUpkeep', function() {
       it('returns false if people haven\'t sent any ETH', async function () {
-        await timeForwardToLotteryEnd(lotteryDuration)
+        await timeForward(lotteryDuration)
         const {upkeepNeeded} = await lottery.checkUpkeep.staticCall("0x") // ethers 6
         assert(!upkeepNeeded)
       })
@@ -94,7 +94,7 @@ const timeForwardToLotteryEnd = async (lotteryDuration /* bigint seconds */) => 
 
         // move forward in time to force checkUpkeep() to 
         // return true so performUpkeep will do its thing
-        await timeForwardToLotteryEnd(lotteryDuration)
+        await timeForward(lotteryDuration)
         await lottery.performUpkeep("0x") // this should set the state to calculating
         const {upkeepNeeded} = await lottery.checkUpkeep.staticCall("0x") // ethers 6
         assert.equal(upkeepNeeded, false)
@@ -120,16 +120,28 @@ const timeForwardToLotteryEnd = async (lotteryDuration /* bigint seconds */) => 
         const {upkeepNeeded} = await lottery.checkUpkeep.staticCall("0x") // ethers 6
         assert.equal(upkeepNeeded, false)
       })
-      it('returns true if enough time has passed, has balance, and has players', async function () {
+      it('returns true if enough time passed & has balance & players', async function () {
         await lottery.enterLottery({value: entranceFee})
-        // place the lottery in calculating state
 
         // move forward in time to force checkUpkeep() to 
         // return true so performUpkeep will do its thing
-        await timeForwardToLotteryEnd(lotteryDuration)
+        await timeForward(lotteryDuration)
         const {upkeepNeeded} = await lottery.checkUpkeep.staticCall("0x") // ethers 6
         assert.equal(upkeepNeeded, true)
       })
     })
+    describe('performUpkeep', function() {
+      it(' only runs if checkUpkeep is true', async function () {
+        await lottery.enterLottery({value: entranceFee})
 
+        // move forward in time to force checkUpkeep() to 
+        // return true so performUpkeep will do its thing
+        await timeForward(chainlinkAutomationUpdateInterval)
+        await expect(lottery.performUpkeep("0x")).to.be.revertedWithCustomError(
+          lottery,
+          'Lottery__InvalidCallToPerformUpkeep'
+        )
+        // assert(tx)
+      })
+    })
   })
