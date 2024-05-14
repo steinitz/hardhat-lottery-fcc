@@ -122,15 +122,8 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
         REQUEST_CONFIRMATIONS,
         i_callbackGasLimit,
         NUM_WORDS
-    );
-    // s_requests[requestId] = RequestStatus({
-    //     randomWords: new uint256[](0),
-    //     exists: true,
-    //     fulfilled: false
-    // });
-    // requestIds.push(requestId);
-    // lastRequestId = requestId;
-    // emit RequestSent(requestId, numWords);
+    );    
+    // apparently this is redundant because VRFConsumerBaseV2 already emits
     emit RequestedLotteryWinner(requestId);
 
     // return requestId;

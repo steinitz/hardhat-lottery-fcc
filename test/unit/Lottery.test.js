@@ -14,6 +14,12 @@ const timeForward = async (lotteryDuration /* bigint seconds */) => {
   await network.provider.request({method: 'evm_mine', params: []})
 }
 
+// reproduce the LotteryState Solidity enum here
+   const LotteryStateEnum = {
+     open: 0,
+     calculating: 1,
+  }
+
 !developmentChains.includes(network.name)
   ? describe.skip
   : describe("Lottery Unit Tests", async function () {
@@ -38,7 +44,8 @@ const timeForward = async (lotteryDuration /* bigint seconds */) => {
       it("initializes the lottery correctly", async function () {
         const lotteryState = await lottery.getLotteryState()
         // would like to use LotteryState.OPEN rather than "0".  But how?
-        assert.equal(lotteryState.toString(), "0")
+        // assert.equal(lotteryState.toString(), "0")
+        assert.equal(lotteryState, LotteryStateEnum.open)
         assert.equal(lotteryDuration.toString(), networkConfig[chainId]["lotteryDuration"])
         assert.equal(chainlinkAutomationUpdateInterval.toString(), networkConfig[chainId]["chainlinkAutomationUpdateInterval"])
       })
@@ -134,8 +141,8 @@ const timeForward = async (lotteryDuration /* bigint seconds */) => {
       it("runs if checkupkeep is true", async () => {
         await lottery.enterLottery({ value: entranceFee })
         await timeForward(lotteryDuration)
-        const tx = await lottery.performUpkeep("0x") 
-        assert(tx)
+        const txResponse = await lottery.performUpkeep("0x") 
+        assert(txResponse)
       })
       it('reverts if checkup is false', async function () {
         await lottery.enterLottery({value: entranceFee})
@@ -147,6 +154,28 @@ const timeForward = async (lotteryDuration /* bigint seconds */) => {
           lottery,
           'Lottery__UpkeepNotNeeded'
         )
+      })
+      it(
+        'updates lottery state and emits an event', 
+        async function () {
+          await lottery.enterLottery({ value: entranceFee })
+          await timeForward(lotteryDuration)
+          const transactionResponse = await lottery.performUpkeep("0x") 
+          const transactionReceipt = await transactionResponse.wait(1)
+          // the following now seems to misunderstand how the receipt stores events
+          // we get the second event ([1]) of the tx, I think because of the
+          // redundant event noted in the contract's performUpkeep
+          // console.log({transactionReceipt})
+          const logs = transactionReceipt.logs
+          // console.log('01-deploy-lottery.js', {logs})
+          const topics = logs[0].topics
+          // console.log('01-deploy-lottery.js', {topics})          
+          // no worky - const requestId = txReceipt.events[1].args.requestId
+          const requestId = topics[1]; // not convinced this is the requestId
+          // no worky - assert (requestId.toNumber() > 0)
+          assert (parseInt(Number(requestId)) > 1)
+          const lotteryState = await lottery.getLotteryState() // updates state
+          assert.equal(lotteryState, LotteryStateEnum.calculating)
       })
     })
   })
