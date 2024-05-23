@@ -15,10 +15,28 @@ const timeForward = async (lotteryDuration /* bigint seconds */) => {
 }
 
 // reproduce the LotteryState Solidity enum here
-   const LotteryStateEnum = {
-     open: 0,
-     calculating: 1,
-  }
+const LotteryStateEnum = {
+  open: 0,
+  calculating: 1,
+}
+
+const getRequestId = async (transactionResponse) => {
+  const transactionReceipt = await transactionResponse.wait(1)
+  // the following now seems to misunderstand how the receipt stores events
+  // we get the second event ([1]) of the tx, I think because of the
+  // redundant event noted in the contract's performUpkeep
+  // console.log({transactionReceipt})
+  const logs = transactionReceipt.logs
+  // console.log('01-deploy-lottery.js', {logs})
+  const topics = logs[0].topics
+  // console.log('01-deploy-lottery.js', {topics})          
+  // no worky - const requestId = txReceipt.events[1].args.requestId
+  // not convinced this is the requestId but it does match
+  // the value in the contract
+  const requestId = topics[2]; 
+  // no worky - assert (requestId.toNumber() > 0)
+  return (parseInt(Number(requestId)))
+}
 
 !developmentChains.includes(network.name)
   ? describe.skip
@@ -160,22 +178,112 @@ const timeForward = async (lotteryDuration /* bigint seconds */) => {
         async function () {
           await lottery.enterLottery({ value: entranceFee })
           await timeForward(lotteryDuration)
-          const transactionResponse = await lottery.performUpkeep("0x") 
-          const transactionReceipt = await transactionResponse.wait(1)
-          // the following now seems to misunderstand how the receipt stores events
-          // we get the second event ([1]) of the tx, I think because of the
-          // redundant event noted in the contract's performUpkeep
-          // console.log({transactionReceipt})
-          const logs = transactionReceipt.logs
-          // console.log('01-deploy-lottery.js', {logs})
-          const topics = logs[0].topics
-          // console.log('01-deploy-lottery.js', {topics})          
-          // no worky - const requestId = txReceipt.events[1].args.requestId
-          const requestId = topics[1]; // not convinced this is the requestId
-          // no worky - assert (requestId.toNumber() > 0)
-          assert (parseInt(Number(requestId)) > 1)
+          const transactionResponse = await lottery.performUpkeep("0x")
+          const requestId = await getRequestId(transactionResponse)
+          console.log('Lottery.test', {requestId})
+          assert (requestId > 0)
+          console.log('Lottery.test - getting lottery state')
           const lotteryState = await lottery.getLotteryState() // updates state
+          console.log('Lottery.test', {lotteryState})
           assert.equal(lotteryState, LotteryStateEnum.calculating)
       })
     })
+    describe('fulfillRandomWords', function() {
+      beforeEach(async function () {
+        await lottery.enterLottery({value: entranceFee})
+      })
+      it.only('can only be called after performUpkeep', async function () {
+        const lotteryAddress = lottery.getAddress()
+        console.log(
+          'test "can only be called after performUpkeep" calling fulfillRandomWords with', 
+          // {vrfCoordinatorV2Mock},
+          {lotteryAddress},
+        )
+        async function testRandomWords(requestId) {
+          await expect(
+            vrfCoordinatorV2Mock.fulfillRandomWords(requestId, lottery.getAddress())
+          ).to.be.revertedWithCustomError(
+            lottery,
+            'Lottery__NotOpen'
+          )
+        }
+        await timeForward(lotteryDuration)
+        await lottery.performUpkeep("0x") 
+        // test a couple of fake requestIds - both should fail
+        testRandomWords(0)
+        testRandomWords(1)
+      })
+      it.only ('picks a winner, resets, and sends money', async () => {
+        const additionalEntrants = 3
+        const startingAccountIndex = 1 // deployer = 0
+        const accounts = await ethers.getSigners()
+        // console.log({accounts})
+        for(
+          let i = startingAccountIndex; 
+          i < startingAccountIndex + additionalEntrants; 
+          i++
+        ) {
+          const accountConnectedLottery = lottery.connect(accounts[i])
+          await lottery.enterLottery({ value: entranceFee })
+        }
+
+        const startingTimeStamp = await lottery.getTimestamp()
+        const lotteryAddress = lottery.getAddress()
+
+        // to make this work with staging tests we need to simulate waiting
+        // for the full duration of the lottery
+        // console.log('Lottery.test - creating Promise to catch WinnerPicked event')
+        await new Promise(async (resolve, reject) => {
+          // console.log('Lottery.test "picks a winner, resets, and sends money" - inside Promise to catch WinnerPicked event')
+          lottery.once('WinnerPicked', async () => {
+            console.log('WinnerPicked event fired')
+            try {
+              // const recentWinner = await lottery.getRecentWinner()
+              // const lotteryState = await lottery.getLotteryState()
+              // const endingTimeStamp = await lottery.getTimeStamp()
+              // const numPlayers = await lottery.getNumberOfPlayers()
+              // const winnerEndingBalance = await accounts[1].getBalance()
+              // assert.equal(numPlayers.toString(), '0')
+              // assert.equal(lotteryState, LotteryStateEnum.recentWinner)
+              // assert(endingTimeStamp > startingTimeStamp)
+              // assert.equal(
+              //   winnerEndingBalance.toString(),
+              //   winnerStartingBalance.add(  
+            } 
+            catch (e) {
+              reject(e)
+            }
+            resolve()
+          })
+          try {
+            await timeForward(lotteryDuration)
+            console.log('about to call performUpkeep')
+            const txResponse = await lottery.performUpkeep("0x")
+            // now done in getRequestId - const txReceipt = await txResponse.wait(1)
+            console.log('about to call getRequestID')
+            const requestId = await getRequestId(txResponse)
+            // const lotteryAddress = lottery.getAddress()
+            console.log(
+              'test "picks a winner, resets, and sends money" calling fulfillRandomWords with', 
+              // {requestId},
+              // {vrfCoordinatorV2Mock},
+              {lotteryAddress},
+            )
+            await vrfCoordinatorV2Mock.fulfillRandomWords(
+              requestId,
+              lotteryAddress
+            )
+            console.log('called fulfillRandomWords with', {requestId})
+          } 
+          catch (e) {
+            reject(e)   
+          }    
+          // const recentWinner = await lottery.getRecentWinner()
+          // console.log({recentWinner})
+
+          // const winnerBalance = await ethers.provider.getBalance(recentWinner)
+          // assert.equal(winnerBalance.toString(), entranceFee.toString())
+      })
+    })
   })
+})

@@ -122,7 +122,8 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
         REQUEST_CONFIRMATIONS,
         i_callbackGasLimit,
         NUM_WORDS
-    );    
+    );
+    console.log('solidity: performUpkeep requestRandomWords requestId', requestId);
     // apparently this is redundant because VRFConsumerBaseV2 already emits
     emit RequestedLotteryWinner(requestId);
 
@@ -157,13 +158,14 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
 
     upkeepNeeded = isOpen && shouldLotteryEnd && hasEntrants && hasETH;
     return (upkeepNeeded, performData);
-  }
+  } 
  
   // overridden chainlink callback function
   function fulfillRandomWords(
-    uint256 /* requestId */,
+    uint256 requestId,
     uint256[] memory randomWords
   ) internal override {
+    console.log('Lottery.sol - fulfillRandomWords, entering', requestId);
     uint256 indexOfWinner = randomWords[0] % s_entrants.length;
     address payable winner = s_entrants[indexOfWinner];
     s_winner = winner;
@@ -172,9 +174,11 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
     s_entrants = new address payable[](0);
     (bool success, ) = winner.call{value: address(this).balance}("");
     if (!success) {
+      console.log('Lottery.sol - winner.call failed');
       revert Lottery__TransferFailed();
     }
     emit WinnerPicked(winner);
+    console.log('Lottery.sol - WinnerPicked', winner, indexOfWinner);
   }
 
   // public getters - function modifiers : view, pure (implicit)

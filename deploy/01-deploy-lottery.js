@@ -1,5 +1,3 @@
-
-
 const {network} = require("hardhat")
 const {developmentChains, networkConfig} = require("../helper-hardhat-config")
 const chainId = network.config.chainId
@@ -60,16 +58,23 @@ module.exports = async function({
     waitConfirmations: network.config.blockConfirmations || 1,
   })
 
-  // Ensure the Lottery contract is a valid consumer of the VRFCoordinatorV2Mock contract.
-  // Can't be done above because we don't have the Lottery contract at that point.
+  // Ensure the Lottery contract is a valid consumer of the 
+  // VRFCoordinatorV2Mock contract.  Can't be done above because 
+  // we don't have the Lottery contract at that point.
+
+  const lotteryAddress = lottery.address
   if (developmentChains.includes(network.name)) {
-    vrfCoordinatorV2Mock
-    await vrfCoordinatorV2Mock.addConsumer(subscriptionId, lottery.address)
+    console.log(
+      "01-deploy - calling VRFCoordinatorV2Mock.addConsumer with", 
+      {subscriptionId},
+      {lotteryAddress}, 
+    )
+    await vrfCoordinatorV2Mock.addConsumer(subscriptionId, lotteryAddress)
   }
 
   if(!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
     log("Verifying...")
-    await verify(lottery.address, args)
+    await verify(lotteryAddress, args)
   }
 
   log("---------------------------------")
