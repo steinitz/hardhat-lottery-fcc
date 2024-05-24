@@ -64,11 +64,11 @@ module.exports = async function({
 
   const lotteryAddress = lottery.address
   if (developmentChains.includes(network.name)) {
-    console.log(
-      "01-deploy - calling VRFCoordinatorV2Mock.addConsumer with", 
-      {subscriptionId},
-      {lotteryAddress}, 
-    )
+    // console.log(
+    //   "01-deploy - calling VRFCoordinatorV2Mock.addConsumer with", 
+    //   {subscriptionId},
+    //   {lotteryAddress}, 
+    // )
     await vrfCoordinatorV2Mock.addConsumer(subscriptionId, lotteryAddress)
   }
 

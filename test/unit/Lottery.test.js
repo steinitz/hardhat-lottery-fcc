@@ -192,7 +192,7 @@ const getRequestId = async (transactionResponse) => {
       beforeEach(async function () {
         await lottery.enterLottery({value: entranceFee})
       })
-      it.only('can only be called after performUpkeep', async function () {
+      it('can only be called after performUpkeep', async function () {
         const lotteryAddress = lottery.getAddress()
         console.log(
           'test "can only be called after performUpkeep" calling fulfillRandomWords with', 
@@ -217,35 +217,36 @@ const getRequestId = async (transactionResponse) => {
         const additionalEntrants = 3
         const startingAccountIndex = 1 // deployer = 0
         const accounts = await ethers.getSigners()
+        let lotteryWithAccounts
         // console.log({accounts})
         for(
           let i = startingAccountIndex; 
           i < startingAccountIndex + additionalEntrants; 
           i++
         ) {
-          const accountConnectedLottery = lottery.connect(accounts[i])
+          lotteryWithAccounts = lottery.connect(accounts[i])
           await lottery.enterLottery({ value: entranceFee })
         }
 
-        const startingTimeStamp = await lottery.getTimestamp()
-        const lotteryAddress = lottery.getAddress()
+        const startingTimestamp = await lotteryWithAccounts.getTimestamp()
+        const lotteryAddress = lotteryWithAccounts.getAddress()
 
         // to make this work with staging tests we need to simulate waiting
         // for the full duration of the lottery
         // console.log('Lottery.test - creating Promise to catch WinnerPicked event')
         await new Promise(async (resolve, reject) => {
           // console.log('Lottery.test "picks a winner, resets, and sends money" - inside Promise to catch WinnerPicked event')
-          lottery.once('WinnerPicked', async () => {
-            console.log('WinnerPicked event fired')
+          lotteryWithAccounts.once('WinnerPicked', async () => {
+            console.log('test "picks winner..." - WinnerPicked event fired')
             try {
-              // const recentWinner = await lottery.getRecentWinner()
-              // const lotteryState = await lottery.getLotteryState()
-              // const endingTimeStamp = await lottery.getTimeStamp()
-              // const numPlayers = await lottery.getNumberOfPlayers()
+              const recentWinner = await lottery.getRecentWinner()
+              const lotteryState = await lottery.getLotteryState()
+              const endingTimestamp = await lottery.getTimestamp()
+              const numEntrants = await lottery.getNumberOfEntrants()
               // const winnerEndingBalance = await accounts[1].getBalance()
-              // assert.equal(numPlayers.toString(), '0')
-              // assert.equal(lotteryState, LotteryStateEnum.recentWinner)
-              // assert(endingTimeStamp > startingTimeStamp)
+              assert.equal(numEntrants.toString(), '0')
+              assert.equal(lotteryState, LotteryStateEnum.open)
+              assert(endingTimestamp > startingTimestamp)
               // assert.equal(
               //   winnerEndingBalance.toString(),
               //   winnerStartingBalance.add(  
@@ -257,23 +258,20 @@ const getRequestId = async (transactionResponse) => {
           })
           try {
             await timeForward(lotteryDuration)
-            console.log('about to call performUpkeep')
-            const txResponse = await lottery.performUpkeep("0x")
-            // now done in getRequestId - const txReceipt = await txResponse.wait(1)
-            console.log('about to call getRequestID')
+            const txResponse = await lotteryWithAccounts.performUpkeep("0x")
+            // now done in getRequestId - 
+            // const txReceipt = await txResponse.wait(1)
             const requestId = await getRequestId(txResponse)
-            // const lotteryAddress = lottery.getAddress()
-            console.log(
-              'test "picks a winner, resets, and sends money" calling fulfillRandomWords with', 
-              // {requestId},
-              // {vrfCoordinatorV2Mock},
-              {lotteryAddress},
-            )
+            // console.log(
+            //  'test "picks winner..." calling fulfillRandomWords with', 
+            //  {requestId},
+            //  {vrfCoordinatorV2Mock},
+            //  {lotteryAddress},
+            // )
             await vrfCoordinatorV2Mock.fulfillRandomWords(
               requestId,
               lotteryAddress
             )
-            console.log('called fulfillRandomWords with', {requestId})
           } 
           catch (e) {
             reject(e)   
