@@ -212,7 +212,7 @@ const getRequestId = async (transactionResponse) => {
         testRandomWords(0)
         testRandomWords(1)
       })
-      it.only ('picks winner, resets, sends money', async () => {
+      it ('picks winner, resets lottery state, sends money', async () => {
         const additionalEntrants = 3
         const startingAccountIndex = 1 // deployer = 0
         const accounts = await ethers.getSigners()
@@ -230,22 +230,19 @@ const getRequestId = async (transactionResponse) => {
         const startingTimestamp = await lotteryWithAccounts.getTimestamp()
         const lotteryAddress = lotteryWithAccounts.getAddress()
 
-        // we learned, by logging all the accounts and comparing it 
-        // to the winning account, that the account at index 1 wil
-        // always be the winner when using vrfCoordinatorV2Mock
+        // we learned, by logging all the accounts and comparing them 
+        // to the winning account, that, when using vrfCoordinatorV2Mock,
+        // the winner will always be theaccount at index 1
         const winnerIndex = 1
 
-        // to make this work with staging tests we need to simulate waiting
+        // to make this somewhat reusable for our staging tests we simulate waiting
         // for the full duration of the lottery
-        // console.log('Lottery.test - creating Promise to catch WinnerPicked event')
         await new Promise(async (resolve, reject) => {
-          // console.log('Lottery.test "picks a winner, resets, and sends money" - inside Promise to catch WinnerPicked event')
           lotteryWithAccounts.once (
             'WinnerPicked', 
             async () => {
               // console.log('test "picks winner..." WinnerPicked event fired')
               try {
-                // const recentWinner = await lottery.getRecentWinner()
                 const lotteryState = await lottery.getLotteryState()
                 const endingTimestamp = await lottery.getTimestamp()
                 const numEntrants = await lottery.getNumberOfEntrants()
@@ -270,18 +267,12 @@ const getRequestId = async (transactionResponse) => {
           try {
             await timeForward(lotteryDuration)
             const txResponse = await lotteryWithAccounts.performUpkeep("0x")
-            // now done in getRequestId - 
+            // now done in getRequestId:
             // const txReceipt = await txResponse.wait(1)
             const requestId = await getRequestId(txResponse)
 
             winnerStartingBalance = await 
               accounts[winnerIndex].provider.getBalance(accounts[winnerIndex])
-            // console.log(
-            //  'test "picks winner..." calling fulfillRandomWords with', 
-            //  {requestId},
-            //  {vrfCoordinatorV2Mock},
-            //  {lotteryAddress},
-            // )
             await vrfCoordinatorV2Mock.fulfillRandomWords(
               requestId,
               lotteryAddress
