@@ -1,6 +1,7 @@
 const {assert, expect} = require ("chai")
 require ("@nomicfoundation/hardhat-toolbox")
 const {ethers, deployments, network} = require ("hardhat")
+// require("ethers").ethers.BigNumber;
 const {developmentChains, networkConfig} = require ("../../helper-hardhat-config.js")
 const {getContract} = require('../../utils/getContract')
 
@@ -54,6 +55,7 @@ const getRequestId = async (transactionResponse) => {
         signer
       )
       entranceFee = await lottery.getEntranceFee()
+      // console.log('tests beforeEach', {entranceFee})
       chainlinkAutomationUpdateInterval = await lottery.getChainlinkAutomationUpdateInterval()
       lotteryDuration = await lottery.getLotteryDuration()
     })
@@ -180,11 +182,8 @@ const getRequestId = async (transactionResponse) => {
           await timeForward(lotteryDuration)
           const transactionResponse = await lottery.performUpkeep("0x")
           const requestId = await getRequestId(transactionResponse)
-          console.log('Lottery.test', {requestId})
           assert (requestId > 0)
-          console.log('Lottery.test - getting lottery state')
           const lotteryState = await lottery.getLotteryState() // updates state
-          console.log('Lottery.test', {lotteryState})
           assert.equal(lotteryState, LotteryStateEnum.calculating)
       })
     })
@@ -194,11 +193,11 @@ const getRequestId = async (transactionResponse) => {
       })
       it('can only be called after performUpkeep', async function () {
         const lotteryAddress = lottery.getAddress()
-        console.log(
-          'test "can only be called after performUpkeep" calling fulfillRandomWords with', 
-          // {vrfCoordinatorV2Mock},
-          {lotteryAddress},
-        )
+        // console.log(
+        //   'test "can only be called after performUpkeep" calling fulfillRandomWords with', 
+        //   // {vrfCoordinatorV2Mock},
+        //   {lotteryAddress},
+        // )
         async function testRandomWords(requestId) {
           await expect(
             vrfCoordinatorV2Mock.fulfillRandomWords(requestId, lottery.getAddress())
@@ -213,7 +212,7 @@ const getRequestId = async (transactionResponse) => {
         testRandomWords(0)
         testRandomWords(1)
       })
-      it.only ('picks a winner, resets, and sends money', async () => {
+      it.only ('picks winner, resets, sends money', async () => {
         const additionalEntrants = 3
         const startingAccountIndex = 1 // deployer = 0
         const accounts = await ethers.getSigners()
@@ -231,37 +230,52 @@ const getRequestId = async (transactionResponse) => {
         const startingTimestamp = await lotteryWithAccounts.getTimestamp()
         const lotteryAddress = lotteryWithAccounts.getAddress()
 
+        // we learned, by logging all the accounts and comparing it 
+        // to the winning account, that the account at index 1 wil
+        // always be the winner when using vrfCoordinatorV2Mock
+        const winnerIndex = 1
+
         // to make this work with staging tests we need to simulate waiting
         // for the full duration of the lottery
         // console.log('Lottery.test - creating Promise to catch WinnerPicked event')
         await new Promise(async (resolve, reject) => {
           // console.log('Lottery.test "picks a winner, resets, and sends money" - inside Promise to catch WinnerPicked event')
-          lotteryWithAccounts.once('WinnerPicked', async () => {
-            console.log('test "picks winner..." - WinnerPicked event fired')
-            try {
-              const recentWinner = await lottery.getRecentWinner()
-              const lotteryState = await lottery.getLotteryState()
-              const endingTimestamp = await lottery.getTimestamp()
-              const numEntrants = await lottery.getNumberOfEntrants()
-              // const winnerEndingBalance = await accounts[1].getBalance()
-              assert.equal(numEntrants.toString(), '0')
-              assert.equal(lotteryState, LotteryStateEnum.open)
-              assert(endingTimestamp > startingTimestamp)
-              // assert.equal(
-              //   winnerEndingBalance.toString(),
-              //   winnerStartingBalance.add(  
-            } 
-            catch (e) {
-              reject(e)
+          lotteryWithAccounts.once (
+            'WinnerPicked', 
+            async () => {
+              // console.log('test "picks winner..." WinnerPicked event fired')
+              try {
+                // const recentWinner = await lottery.getRecentWinner()
+                const lotteryState = await lottery.getLotteryState()
+                const endingTimestamp = await lottery.getTimestamp()
+                const numEntrants = await lottery.getNumberOfEntrants()
+                const winnerEndingBalance = await 
+                  accounts[winnerIndex].provider.getBalance(accounts[winnerIndex])
+                assert.equal(numEntrants.toString(), '0')
+                assert.equal(lotteryState, LotteryStateEnum.open)
+                assert(endingTimestamp > startingTimestamp)
+                const winnings = BigInt(entranceFee) * BigInt(numEntrants)
+                assert.equal(
+                  winnerEndingBalance,
+                  winnerStartingBalance + winnings
+                )
+              } 
+              catch (e) {
+                reject(e)
+              }
+              resolve()
             }
-            resolve()
-          })
+          )
+          let winnerStartingBalance
           try {
             await timeForward(lotteryDuration)
             const txResponse = await lotteryWithAccounts.performUpkeep("0x")
             // now done in getRequestId - 
             // const txReceipt = await txResponse.wait(1)
             const requestId = await getRequestId(txResponse)
+
+            winnerStartingBalance = await 
+              accounts[winnerIndex].provider.getBalance(accounts[winnerIndex])
             // console.log(
             //  'test "picks winner..." calling fulfillRandomWords with', 
             //  {requestId},
@@ -276,11 +290,6 @@ const getRequestId = async (transactionResponse) => {
           catch (e) {
             reject(e)   
           }    
-          // const recentWinner = await lottery.getRecentWinner()
-          // console.log({recentWinner})
-
-          // const winnerBalance = await ethers.provider.getBalance(recentWinner)
-          // assert.equal(winnerBalance.toString(), entranceFee.toString())
       })
     })
   })
